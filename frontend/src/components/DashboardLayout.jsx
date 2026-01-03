@@ -1,9 +1,11 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 
 const DashboardLayout = () => {
     const { user, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -12,8 +14,8 @@ const DashboardLayout = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="bg-white shadow-sm">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+            <nav className="bg-white dark:bg-gray-800 shadow-sm transition-colors duration-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
                         <div className="flex">
@@ -31,11 +33,18 @@ const DashboardLayout = () => {
                                 )}
                             </div>
                         </div>
-                        <div className="flex items-center">
-                            <span className="text-gray-700 mr-4">Hello, {user?.name}</span>
+                        <div className="flex items-center space-x-4">
+                            <button
+                                onClick={toggleTheme}
+                                className="p-2 rounded-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white focus:outline-none"
+                                title="Toggle Theme"
+                            >
+                                {theme === 'dark' ? '☀️' : '🌙'}
+                            </button>
+                            <span className="text-gray-700 dark:text-gray-200">Hello, {user?.name}</span>
                             <button
                                 onClick={handleLogout}
-                                className="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="bg-white dark:bg-gray-800 p-1 px-3 rounded-full text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 border border-gray-200 dark:border-gray-700 text-sm"
                             >
                                 Logout
                             </button>
