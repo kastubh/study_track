@@ -44,7 +44,6 @@ A full-stack student timetable and progress tracker with WhatsApp notifications.
 3. Activate: `.\venv\Scripts\activate` (Windows) or `source venv/bin/activate` (Mac/Linux)
 4. Install deps: `pip install -r requirements.txt`
 5. Run: `python run.py`
-
 ### Frontend
 1. Open `frontend/` in terminal.
 2. Install deps: `npm install`
