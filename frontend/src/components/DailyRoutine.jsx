@@ -112,21 +112,21 @@ const DailyRoutine = () => {
     return (
         <div className="space-y-6">
             {/* Top Section: Schedule & Tasks */}
-            <div className="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">Today's Routine ({dateStr})</h3>
+            <div className="bg-white dark:bg-gray-800 shadow px-4 py-5 sm:rounded-lg sm:p-6 transition-colors duration-200">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100 mb-4">Today's Routine ({dateStr})</h3>
 
                 <div className="md:grid md:grid-cols-2 md:gap-6">
                     {/* Left: Schedule */}
                     <div className="mb-6 md:mb-0">
-                        <h4 className="text-md font-medium text-gray-700 mb-2">Schedule</h4>
+                        <h4 className="text-md font-medium text-gray-700 dark:text-gray-300 mb-2">Schedule</h4>
                         {todaySchedule.length === 0 ? (
-                            <p className="text-sm text-gray-500">No classes scheduled for today.</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">No classes scheduled for today.</p>
                         ) : (
-                            <ul className="divide-y divide-gray-200">
+                            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                                 {todaySchedule.map(item => (
                                     <li key={item._id} className="py-2 flex justify-between">
-                                        <span className="text-sm font-medium text-gray-900">{item.subjectId}</span>
-                                        <span className="text-sm text-gray-500">{item.plannedHours} hrs</span>
+                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-200">{item.subjectId}</span>
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">{item.plannedHours} hrs</span>
                                     </li>
                                 ))}
                             </ul>
@@ -136,15 +136,15 @@ const DailyRoutine = () => {
                     {/* Right: Tasks */}
                     <div>
                         <div className="flex justify-between items-center mb-2">
-                            <h4 className="text-md font-medium text-gray-700">Daily Tasks</h4>
-                            <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
+                            <h4 className="text-md font-medium text-gray-700 dark:text-gray-300">Daily Tasks</h4>
+                            <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 dark:text-indigo-200 bg-indigo-200 dark:bg-indigo-900/50">
                                 {Math.round(progress)}% Done
                             </span>
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                            <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
+                            <div className="bg-indigo-600 dark:bg-indigo-500 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
                         </div>
 
                         <form onSubmit={handleAddTask} className="flex mb-4">
@@ -153,7 +153,7 @@ const DailyRoutine = () => {
                                 value={newTask}
                                 onChange={(e) => setNewTask(e.target.value)}
                                 placeholder="Add a task..."
-                                className="flex-grow shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-l-md p-2 border"
+                                className="flex-grow shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 dark:border-gray-600 rounded-l-md p-2 border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                             />
                             <button
                                 type="submit"
@@ -165,7 +165,7 @@ const DailyRoutine = () => {
 
                         <ul className="space-y-2">
                             {tasks.map(task => (
-                                <li key={task._id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                <li key={task._id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-2 rounded border border-transparent dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
                                     <div className="flex items-center">
                                         <input
                                             type="checkbox"
@@ -173,11 +173,11 @@ const DailyRoutine = () => {
                                             onChange={() => toggleTask(task._id)}
                                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                                         />
-                                        <span className={`ml-2 text-sm ${task.isCompleted ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                                        <span className={`ml-2 text-sm ${task.isCompleted ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-200'}`}>
                                             {task.title}
                                         </span>
                                     </div>
-                                    <button onClick={() => deleteTask(task._id)} className="text-red-500 hover:text-red-700 text-sm">
+                                    <button onClick={() => deleteTask(task._id)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm">
                                         &times;
                                     </button>
                                 </li>

@@ -142,13 +142,13 @@ const StudentDashboard = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center px-2">
-                <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                    Welcome back, <span className="text-indigo-600">{user?.name || 'Student'}</span>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                    Welcome back, <span className="text-indigo-600 dark:text-indigo-400">{user?.name || 'Student'}</span>
                 </h1>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="bg-white shadow rounded-lg p-2">
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-2 transition-colors duration-200">
                 <nav className="flex space-x-2 overflow-x-auto" aria-label="Tabs">
                     {tabs.map((tab) => (
                         <button
@@ -157,8 +157,8 @@ const StudentDashboard = () => {
                             className={`
                                 px-4 py-2 rounded-md font-medium text-sm transition-colors whitespace-nowrap
                                 ${activeTab === tab.id
-                                    ? 'bg-indigo-100 text-indigo-700'
-                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                    ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'
                                 }
                             `}
                         >
@@ -177,14 +177,14 @@ const StudentDashboard = () => {
                 )}
 
                 {activeTab === 'weekly_progress' && (
-                    <div className="bg-white shadow rounded-lg p-6 animate-fade-in">
+                    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 animate-fade-in transition-colors duration-200">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                             <div>
-                                <h3 className="text-xl font-medium text-gray-900">Weekly Performance</h3>
-                                <p className="text-sm text-gray-500">{getWeekRangeLabel(selectedWeeklyDate)}</p>
+                                <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100">Weekly Performance</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{getWeekRangeLabel(selectedWeeklyDate)}</p>
                             </div>
-                            <div className="mt-2 md:mt-0 flex items-center bg-gray-50 p-2 rounded-md border border-gray-200">
-                                <span className="text-sm text-gray-500 mr-2 font-medium">Select Week (by Date):</span>
+                            <div className="mt-2 md:mt-0 flex items-center bg-gray-50 dark:bg-gray-700 p-2 rounded-md border border-gray-200 dark:border-gray-600">
+                                <span className="text-sm text-gray-500 dark:text-gray-300 mr-2 font-medium">Select Week (by Date):</span>
                                 <input
                                     type="date"
                                     value={selectedWeeklyDate}
@@ -193,7 +193,7 @@ const StudentDashboard = () => {
                                         setWeeklyStats(null);
                                         setSelectedWeeklyDate(e.target.value);
                                     }}
-                                    className="bg-white border-none rounded text-sm focus:ring-0 text-gray-700 font-semibold cursor-pointer"
+                                    className="bg-white dark:bg-gray-600 border-none rounded text-sm focus:ring-0 text-gray-700 dark:text-gray-200 font-semibold cursor-pointer"
                                 />
                             </div>
                         </div>
@@ -210,11 +210,11 @@ const StudentDashboard = () => {
                 )}
 
                 {activeTab === 'daily_progress' && (
-                    <div className="bg-white shadow rounded-lg p-6 animate-fade-in">
+                    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 animate-fade-in transition-colors duration-200">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-                            <h3 className="text-xl font-medium text-gray-900">Daily Performance</h3>
-                            <div className="mt-2 md:mt-0 flex items-center bg-gray-50 p-2 rounded-md border border-gray-200">
-                                <span className="text-sm text-gray-500 mr-2 font-medium">Viewing Date:</span>
+                            <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100">Daily Performance</h3>
+                            <div className="mt-2 md:mt-0 flex items-center bg-gray-50 dark:bg-gray-700 p-2 rounded-md border border-gray-200 dark:border-gray-600">
+                                <span className="text-sm text-gray-500 dark:text-gray-300 mr-2 font-medium">Viewing Date:</span>
                                 <input
                                     type="date"
                                     value={selectedDate}
@@ -223,23 +223,23 @@ const StudentDashboard = () => {
                                         setDailyStats(null); // Clear old stats to show loading/change
                                         setSelectedDate(e.target.value);
                                     }}
-                                    className="bg-white border-none rounded text-sm focus:ring-0 text-gray-700 font-semibold cursor-pointer"
+                                    className="bg-white dark:bg-gray-600 border-none rounded text-sm focus:ring-0 text-gray-700 dark:text-gray-200 font-semibold cursor-pointer"
                                 />
                             </div>
                         </div>
 
                         {/* Summary Cards */}
                         {!dailyStats ? (
-                            <div className="p-8 text-center text-gray-500">Loading data for {selectedDate}...</div>
+                            <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading data for {selectedDate}...</div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 transition-transform hover:scale-[1.01]">
-                                    <p className="text-sm font-medium text-blue-600 uppercase tracking-wider">Planned Hours</p>
-                                    <p className="mt-1 text-2xl font-bold text-blue-900">{dailyStats?.plannedHours || 0}</p>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800 transition-transform hover:scale-[1.01]">
+                                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">Planned Hours</p>
+                                    <p className="mt-1 text-2xl font-bold text-blue-900 dark:text-blue-100">{dailyStats?.plannedHours || 0}</p>
                                 </div>
-                                <div className="bg-green-50 p-4 rounded-lg border border-green-100 transition-transform hover:scale-[1.01]">
-                                    <p className="text-sm font-medium text-green-600 uppercase tracking-wider">Actual Hours</p>
-                                    <p className="mt-1 text-2xl font-bold text-green-900">{dailyStats?.totalHours || 0}</p>
+                                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800 transition-transform hover:scale-[1.01]">
+                                    <p className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wider">Actual Hours</p>
+                                    <p className="mt-1 text-2xl font-bold text-green-900 dark:text-green-100">{dailyStats?.totalHours || 0}</p>
                                 </div>
                             </div>
                         )}
@@ -248,9 +248,29 @@ const StudentDashboard = () => {
                             {dailyStats ? (
                                 <Bar
                                     data={getChartData(dailyStats, 'rgba(255, 159, 64, 0.6)')}
-                                    options={{ maintainAspectRatio: false, responsive: true }}
+                                    options={{
+                                        maintainAspectRatio: false,
+                                        responsive: true,
+                                        plugins: {
+                                            legend: {
+                                                labels: {
+                                                    color: '#9CA3AF' // gray-400 for better visibility in dark/light
+                                                }
+                                            }
+                                        },
+                                        scales: {
+                                            x: {
+                                                ticks: { color: '#9CA3AF' },
+                                                grid: { color: 'rgba(156, 163, 175, 0.1)' }
+                                            },
+                                            y: {
+                                                ticks: { color: '#9CA3AF' },
+                                                grid: { color: 'rgba(156, 163, 175, 0.1)' }
+                                            }
+                                        }
+                                    }}
                                 />
-                            ) : <p>No data available for this date.</p>}
+                            ) : <p className="text-gray-500 dark:text-gray-400">No data available for this date.</p>}
                         </div>
                     </div>
                 )}
