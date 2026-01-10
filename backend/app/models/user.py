@@ -10,6 +10,7 @@ class User:
         self.role = role
         self.phone_number = phone_number
         self.linked_parent_id = linked_parent_id
+        self.has_seen_wizard = False
         self.created_at = datetime.utcnow()
 
     @staticmethod
@@ -27,6 +28,7 @@ class User:
             "passwordHash": self.password_hash,
             "phoneNumber": self.phone_number,
             "linkedParentId": self.linked_parent_id,
+            "hasSeenWizard": getattr(self, 'has_seen_wizard', False),
             "createdAt": self.created_at
         }
 
@@ -44,5 +46,8 @@ class User:
             phone_number=user_data.get('phoneNumber'),
             linked_parent_id=user_data.get('linkedParentId')
         )
+        # Note: user.has_seen_wizard is already defaulted to False in __init__
+        # If we wanted to set it from user_data, we could passed it to __init__
+        # but for now default False is correct for new users.
         result = mongo.db.users.insert_one(user.to_dict())
         return str(result.inserted_id)

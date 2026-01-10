@@ -2,6 +2,10 @@ from flask import Flask
 from flask_cors import CORS
 from app.config import Config
 from app.extensions import mongo, jwt, scheduler
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -23,6 +27,7 @@ def create_app(config_class=Config):
     from app.routes.stats import stats_bp
     from app.routes.notifications import notifications_bp
     from app.routes.daily_tasks import daily_tasks_bp
+    from app.routes.chat import chat_bp
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(timetable_bp, url_prefix='/api/timetable')
@@ -30,6 +35,7 @@ def create_app(config_class=Config):
     app.register_blueprint(stats_bp, url_prefix='/api/stats')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     app.register_blueprint(daily_tasks_bp, url_prefix='/api/daily-tasks')
+    app.register_blueprint(chat_bp, url_prefix='/api/chat')
 
     @app.route('/')
     def index():

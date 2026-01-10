@@ -30,7 +30,8 @@ def register():
                 "id": user_id,
                 "name": data['name'],
                 "email": data['email'],
-                "role": data['role']
+                "role": data['role'],
+                "hasSeenWizard": False
             },
             "accessToken": access_token,
             "refreshToken": refresh_token
@@ -68,7 +69,8 @@ def login():
             "id": user_id,
             "name": user_data['name'],
             "email": user_data['email'],
-            "role": user_data['role']
+            "role": user_data['role'],
+            "hasSeenWizard": user_data.get('hasSeenWizard', False)
         },
         "accessToken": access_token,
         "refreshToken": refresh_token
@@ -87,5 +89,24 @@ def me():
         "id": str(user_data['_id']),
         "name": user_data['name'],
         "email": user_data['email'],
-        "role": user_data['role']
+        "role": user_data['role'],
+        "hasSeenWizard": user_data.get('hasSeenWizard', False)
     }), 200
+
+@auth_bp.route('/update-wizard', methods=['PUT'])
+@jwt_required()
+def update_wizard_status():
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    if not data or 'hasSeenWizard' not in data:
+        return jsonify({"message": "Missing hasSeenWizard field"}), 400
+        
+    try:
+        mongo.db.users.update_one(
+            {"_id": ObjectId(current_user_id)},
+            {"$set": {"hasSeenWizard": data['hasSeenWizard']}}
+        )
+        return jsonify({"message": "Wizard status updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"message": str(e)}), 500

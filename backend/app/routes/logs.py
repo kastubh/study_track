@@ -14,11 +14,15 @@ def create_log():
     hours_spent = data.get('hoursSpent')
     notes = data.get('notes', '')
     
-    if not all([student_id, subject_id, date, hours_spent]):
-        return jsonify({"message": "Missing fields"}), 400
+    if student_id is None or not subject_id or not date or hours_spent is None:
+        return jsonify({"message": "Missing required fields: studentId, subjectId, date, or hoursSpent"}), 400
         
-    log_id = DailyLog.create(student_id, subject_id, date, hours_spent, notes)
-    return jsonify({"message": "Log created", "id": log_id}), 201
+    try:
+        log_id = DailyLog.create(student_id, subject_id, date, hours_spent, notes)
+        return jsonify({"message": "Log created", "id": log_id}), 201
+    except Exception as e:
+        print(f"Error creating log: {str(e)}")
+        return jsonify({"message": f"Backend error: {str(e)}"}), 500
 
 @logs_bp.route('/', methods=['DELETE'])
 @jwt_required()

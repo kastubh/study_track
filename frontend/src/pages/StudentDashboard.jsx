@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DailyRoutine from '../components/DailyRoutine';
+import Stopwatch from '../components/Stopwatch';
 import Timetable from './Timetable';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +29,7 @@ const StudentDashboard = () => {
     const [activeTab, setActiveTab] = useState('daily_routine');
     const [weeklyStats, setWeeklyStats] = useState(null);
     const [dailyStats, setDailyStats] = useState(null);
+    const [availableSubjects, setAvailableSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Log Form State
@@ -39,6 +41,7 @@ const StudentDashboard = () => {
     });
     const [logStatus, setLogStatus] = useState({ type: '', msg: '' });
     const [showResetLogsModal, setShowResetLogsModal] = useState(false);
+    const [excessiveStudyInfo, setExcessiveStudyInfo] = useState(null); // {subject, planned, actual}
 
     const handleResetLogs = async () => {
         setLoading(true);
@@ -64,12 +67,18 @@ const StudentDashboard = () => {
         const fetchStats = async () => {
             try {
                 // Fetch weekly stats (specific week containing selectedWeeklyDate) and daily stats (specific date)
-                const [wStats, dStats] = await Promise.all([
+                const [wStats, dStats, timetableRes] = await Promise.all([
                     api.get(`/stats/${user.id}?period=weekly&date=${selectedWeeklyDate}`),
-                    api.get(`/stats/${user.id}?period=daily&date=${selectedDate}`)
+                    api.get(`/stats/${user.id}?period=daily&date=${selectedDate}`),
+                    api.get(`/timetable/${user.id}`)
                 ]);
                 setWeeklyStats(wStats.data);
                 setDailyStats(dStats.data);
+
+                // Extract unique subjects from timetable
+                const subjects = [...new Set(timetableRes.data.map(t => t.subjectId))];
+                setAvailableSubjects(subjects);
+
             } catch (error) {
                 console.error("Error fetching stats", error);
             } finally {
@@ -80,7 +89,7 @@ const StudentDashboard = () => {
     }, [user.id, activeTab, selectedDate, selectedWeeklyDate]); // Refresh when any dependency changes
 
     const handleLogSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setLogStatus({ type: '', msg: '' });
         try {
             await api.post('/logs/', {
@@ -91,13 +100,65 @@ const StudentDashboard = () => {
             setLogStatus({ type: 'success', msg: 'Log added successfully!' });
             setLogData({ subjectId: '', hoursSpent: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
-            // Trigger refresh (optional, but good practice if we want immediate feedback without refetching everything)
-            setDailyStats(null); // Force loading state/refresh effectively on next render cycle if we triggered it
-            // actually, the simplest way to refresh is to just update a trigger or recall fetchStats.
-            // For now, user can click refresh or tab.
+            // Trigger refresh
+            setDailyStats(null);
         } catch (error) {
             setLogStatus({ type: 'error', msg: 'Failed to add log.' });
             console.error(error);
+        }
+    };
+
+    const handleStopwatchFinish = async (hours) => {
+        if (!logData.subjectId) {
+            setLogStatus({ type: 'error', msg: 'Please select or enter a subject first.' });
+            return;
+        }
+
+        const newHoursSpent = hours;
+
+        // Find subject stats from today
+        const subjectStats = dailyStats?.subjectBreakdown?.find(
+            s => s.subjectId.toLowerCase() === logData.subjectId.toLowerCase()
+        );
+
+        if (subjectStats && subjectStats.planned > 0) {
+            const totalActual = (subjectStats.hours || 0) + newHoursSpent;
+            if (totalActual > subjectStats.planned) {
+                setExcessiveStudyInfo({
+                    subject: logData.subjectId,
+                    planned: subjectStats.planned,
+                    actual: totalActual
+                });
+            }
+        }
+
+        // Auto submit
+        console.log("Starting auto-log for:", logData.subjectId, "Hours:", newHoursSpent);
+
+        if (!user || !user.id) {
+            setLogStatus({ type: 'error', msg: 'User session missing. Please log in again.' });
+            return;
+        }
+
+        try {
+            const payload = {
+                studentId: user.id,
+                subjectId: logData.subjectId,
+                date: logData.date || new Date().toISOString().split('T')[0],
+                hoursSpent: newHoursSpent,
+                notes: logData.notes || 'Auto-logged via stopwatch'
+            };
+
+            console.log("Sending auto-log payload:", payload);
+            const response = await api.post('/logs/', payload);
+            console.log("Auto-log success:", response.data);
+
+            setLogStatus({ type: 'success', msg: `Logged ${newHoursSpent} hours for ${logData.subjectId}!` });
+            setDailyStats(null);
+        } catch (error) {
+            console.error("Auto-log request failed:", error);
+            const errorMsg = error.response?.data?.message || error.message || 'Unknown server error';
+            setLogStatus({ type: 'error', msg: `Failed to auto-log: ${errorMsg}` });
         }
     };
 
@@ -120,11 +181,11 @@ const StudentDashboard = () => {
     if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;
 
     const tabs = [
-        { id: 'daily_routine', label: 'Daily Routine' },
-        { id: 'weekly_progress', label: 'Weekly Progress' },
-        { id: 'daily_progress', label: 'Daily Progress' },
-        { id: 'update_log', label: 'Update Log' },
-        { id: 'timetable', label: 'My Timetable' },
+        { id: 'daily_routine', label: 'Daily Routine', icon: '📅' },
+        { id: 'weekly_progress', label: 'Weekly Progress', icon: '📊' },
+        { id: 'daily_progress', label: 'Daily Progress', icon: '📈' },
+        { id: 'update_log', label: 'Update Log', icon: '📝' },
+        { id: 'timetable', label: 'My Timetable', icon: '🕒' },
     ];
 
     // Helper to get week range label
@@ -153,16 +214,18 @@ const StudentDashboard = () => {
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
+                            id={`tab-${tab.id.replace('_', '-')}`}
                             onClick={() => setActiveTab(tab.id)}
                             className={`
-                                px-4 py-2 rounded-md font-medium text-sm transition-colors whitespace-nowrap
+                                px-4 py-2 rounded-md font-medium text-sm transition-colors whitespace-nowrap flex items-center space-x-2
                                 ${activeTab === tab.id
                                     ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
                                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700'
                                 }
                             `}
                         >
-                            {tab.label}
+                            {tab.icon && <span>{tab.icon}</span>}
+                            <span>{tab.label}</span>
                         </button>
                     ))}
                 </nav>
@@ -276,74 +339,105 @@ const StudentDashboard = () => {
                 )}
 
                 {activeTab === 'update_log' && (
-                    <div className="bg-white shadow rounded-lg p-6 max-w-2xl mx-auto animate-fade-in">
-                        <h3 className="text-xl font-medium text-gray-900 mb-6">Log Study Session</h3>
+                    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 max-w-2xl mx-auto animate-fade-in transition-colors duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100">Study Tracker</h3>
+                            <span className="text-xs bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded-full font-semibold">
+                                Live Tracking & Manual Logs
+                            </span>
+                        </div>
+
+                        {/* Integrated Stopwatch Component */}
+                        <div className="mb-8">
+                            <Stopwatch
+                                onStop={handleStopwatchFinish}
+                                subject={logData.subjectId}
+                                subjects={availableSubjects}
+                                onSubjectChange={(val) => setLogData({ ...logData, subjectId: val })}
+                            />
+                        </div>
+
+                        <div className="relative mb-8 text-center">
+                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                            </div>
+                            <div className="relative flex justify-center">
+                                <span className="px-3 bg-white dark:bg-gray-800 text-xs text-gray-400 font-bold uppercase tracking-widest transition-colors">or Enter Manually</span>
+                            </div>
+                        </div>
+
                         <form onSubmit={handleLogSubmit} className="space-y-5">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Subject</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
                                 <input
+                                    list="manual-subjects-list"
                                     type="text"
                                     required
                                     value={logData.subjectId}
                                     onChange={e => setLogData({ ...logData, subjectId: e.target.value })}
-                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
+                                    className="block w-full border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                                     placeholder="e.g., Math"
                                 />
+                                <datalist id="manual-subjects-list">
+                                    {availableSubjects.map((sub, i) => (
+                                        <option key={i} value={sub} />
+                                    ))}
+                                </datalist>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Date</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
                                     <input
                                         type="date"
                                         required
                                         value={logData.date}
                                         onChange={e => setLogData({ ...logData, date: e.target.value })}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
+                                        className="block w-full border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Hours Spent</label>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hours Spent</label>
                                     <input
                                         type="number"
-                                        step="0.5"
+                                        step="0.1"
                                         required
                                         value={logData.hoursSpent}
                                         onChange={e => setLogData({ ...logData, hoursSpent: e.target.value })}
-                                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
-                                        placeholder="1.5"
+                                        className="block w-full border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                        placeholder="e.g., 1.5"
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Notes (Optional)</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (Optional)</label>
                                 <textarea
                                     rows={3}
                                     value={logData.notes}
                                     onChange={e => setLogData({ ...logData, notes: e.target.value })}
-                                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
+                                    className="block w-full border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                                     placeholder="What did you study?"
                                 />
                             </div>
                             {logStatus.msg && (
-                                <div className={`p-3 rounded text-sm ${logStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                <div className={`p-3 rounded-lg text-sm font-medium ${logStatus.type === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
                                     {logStatus.msg}
                                 </div>
                             )}
                             <button
                                 type="submit"
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all transform active:scale-95"
                             >
-                                Save Entry
+                                Save Manual Entry
                             </button>
                         </form>
 
-                        <div className="mt-6 pt-6 border-t border-gray-100">
+                        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
                             <button
                                 onClick={() => setShowResetLogsModal(true)}
                                 type="button"
-                                className="w-full flex justify-center py-2 px-4 border border-red-200 rounded-lg shadow-sm text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                className="w-full flex justify-center py-2 px-4 border border-red-200 dark:border-red-900/50 rounded-lg text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                             >
-                                Reset All Logs
+                                Reset Study History
                             </button>
                         </div>
                     </div>
@@ -355,6 +449,34 @@ const StudentDashboard = () => {
                     </div>
                 )}
             </div>
+
+            {activeTab === 'tech_check' && (
+                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 animate-fade-in">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Tech Check 📰</h3>
+                    <div className="space-y-4">
+                        <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+                            <h4 className="font-semibold text-indigo-600 dark:text-indigo-400">Latest in AI</h4>
+                            <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
+                                Keeping up with the rapid advancements in Artificial Intelligence is crucial.
+                                Check out the latest models and tools transforming the industry.
+                            </p>
+                        </div>
+                        <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+                            <h4 className="font-semibold text-indigo-600 dark:text-indigo-400">Web Dev Trends 2026</h4>
+                            <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
+                                From signals to server components, explore what's new in the web development ecosystem this year.
+                            </p>
+                        </div>
+                        <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow">
+                            <h4 className="font-semibold text-indigo-600 dark:text-indigo-400">Cybersecurity Tips</h4>
+                            <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
+                                Stay safe online with these essential security practices for developers and students alike.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
 
             {/* Reset Logs Confirmation Modal */}
@@ -380,6 +502,36 @@ const StudentDashboard = () => {
                                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm"
                                 >
                                     Yes, Reset Logs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Excessive Study Notification Modal */}
+            {
+                excessiveStudyInfo && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 animate-fade-in transition-colors duration-200 border-2 border-yellow-400">
+                            <div className="flex items-center space-x-3 mb-4">
+                                <span className="text-3xl">⚠️</span>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Study Goal Exceeded!</h3>
+                            </div>
+                            <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm">
+                                You've surpassed your planned hours for <span className="font-bold text-indigo-600 dark:text-indigo-400">{excessiveStudyInfo.subject}</span>.
+                                <br /><br />
+                                📅 <span className="font-medium">Planned:</span> {excessiveStudyInfo.planned} hrs <br />
+                                📈 <span className="font-medium text-red-500">Actual:</span> {excessiveStudyInfo.actual.toFixed(2)} hrs
+                                <br /><br />
+                                Great job on the extra effort, but remember to take breaks!
+                            </p>
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={() => setExcessiveStudyInfo(null)}
+                                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium shadow-md"
+                                >
+                                    Got it!
                                 </button>
                             </div>
                         </div>

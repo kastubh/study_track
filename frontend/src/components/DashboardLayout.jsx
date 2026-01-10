@@ -1,12 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
+import Wizard from './Wizard';
+import Chatbot from './Chatbot';
 
 const DashboardLayout = () => {
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
+    const [showWizard, setShowWizard] = useState(false);
+
+    useEffect(() => {
+        if (user && !user.hasSeenWizard) {
+            setShowWizard(true);
+        }
+    }, [user]);
 
     const handleLogout = () => {
         logout();
@@ -23,11 +32,11 @@ const DashboardLayout = () => {
                                 <span className="text-xl font-bold text-indigo-600">StudyTrack</span>
                             </div>
                             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                                <Link to="/" className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                <Link to="/" id="nav-dashboard-link" className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                     Dashboard
                                 </Link>
                                 {user?.role === 'student' && (
-                                    <Link to="/logs" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                    <Link to="/logs" id="nav-logs-link" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                         Daily Logs
                                     </Link>
                                 )}
@@ -35,7 +44,15 @@ const DashboardLayout = () => {
                         </div>
                         <div className="flex items-center space-x-4">
                             <button
+                                onClick={() => setShowWizard(true)}
+                                className="p-2 rounded-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white focus:outline-none"
+                                title="Start Tour"
+                            >
+                                ❓
+                            </button>
+                            <button
                                 onClick={toggleTheme}
+                                id="nav-theme-toggle"
                                 className="p-2 rounded-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white focus:outline-none"
                                 title="Toggle Theme"
                             >
@@ -60,6 +77,8 @@ const DashboardLayout = () => {
                     </div>
                 </main>
             </div>
+            {showWizard && <Wizard onClose={() => setShowWizard(false)} />}
+            <Chatbot />
         </div>
     );
 };
